@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HireIQ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-white min-h-screen p-8">
+  <h1 class="text-4xl font-bold text-center text-blue-400 mb-2">HireIQ</h1>
+  <p class="text-center text-gray-400 mb-8">AI-Powered Resume & JD Matcher</p>
+
+  <div class="max-w-2xl mx-auto space-y-6">
+    <div class="bg-gray-800 p-6 rounded-xl">
+      <label class="block text-sm font-medium mb-2">Paste Your Resume Text</label>
+      <textarea id="resumeText" rows="8" placeholder="Apna resume text yahan paste karo..."
+        class="w-full bg-gray-700 rounded-lg p-3 text-sm resize-none outline-none"></textarea>
+    </div>
+
+    <div class="bg-gray-800 p-6 rounded-xl">
+      <label class="block text-sm font-medium mb-2">Job Description</label>
+      <textarea id="jdText" rows="6" placeholder="Job description yahan paste karo..."
+        class="w-full bg-gray-700 rounded-lg p-3 text-sm resize-none outline-none"></textarea>
+    </div>
+
+    <button onclick="analyze()"
+      class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-semibold text-lg transition">
+      Analyze Resume 🚀
+    </button>
+
+    <div id="loading" class="hidden text-center text-yellow-400 text-lg">⏳ Analyzing... (1-2 min)</div>
+    <div id="result" class="hidden bg-gray-800 p-6 rounded-xl space-y-4"></div>
+  </div>
+
+  <script>
+    async function analyze() {
+      const resumeText = document.getElementById('resumeText').value;
+      const jd = document.getElementById('jdText').value;
+      if (!resumeText || !jd) return alert('Resume aur JD dono bharo!');
+
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('result').classList.add('hidden');
+
+      try {
+        const res = await fetch('http://localhost:3000/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resumeText, jobDescription: jd })
+        });
+        const data = await res.json();
+        showResult(data);
+      } catch (err) {
+        alert('Server error! Backend chalu hai?');
+      }
+      document.getElementById('loading').classList.add('hidden');
+    }
+
+    function showResult(data) {
+      const div = document.getElementById('result');
+      div.innerHTML = `
+        <h2 class="text-2xl font-bold text-green-400">Match Score: ${data.matchScore}%</h2>
+        <div>
+          <h3 class="font-semibold text-blue-300 mb-2">✅ Matched Keywords</h3>
+          <div class="flex flex-wrap gap-2">${(data.matchedKeywords||[]).map(k=>`<span class="bg-green-800 px-3 py-1 rounded-full text-sm">${k}</span>`).join('')}</div>
+        </div>
+        <div>
+          <h3 class="font-semibold text-red-300 mb-2">❌ Missing Keywords</h3>
+          <div class="flex flex-wrap gap-2">${(data.missingKeywords||[]).map(k=>`<span class="bg-red-900 px-3 py-1 rounded-full text-sm">${k}</span>`).join('')}</div>
+        </div>
+        <div>
+          <h3 class="font-semibold text-yellow-300 mb-2">💡 Suggestions</h3>
+          <ul class="list-disc list-inside text-sm space-y-1">${(data.suggestions||[]).map(s=>`<li>${s}</li>`).join('')}</ul>
+        </div>
+        <div>
+          <h3 class="font-semibold text-purple-300 mb-2">📝 Cover Letter</h3>
+          <p class="text-sm text-gray-300 whitespace-pre-wrap">${data.coverLetter||''}</p>
+        </div>`;
+      div.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
